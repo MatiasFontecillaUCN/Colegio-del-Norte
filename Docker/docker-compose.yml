@@ -1,0 +1,61 @@
+version: "4"
+services:
+  watchtower:
+    image: containrrr/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30
+
+    networks:
+      - default
+
+  frontend:
+    image: matiasfontecillaucn/frontend_proyecto_is:latest
+    restart: always
+    container_name: frontend_proyecto_is_container
+    ports:
+      - 80:80
+    environment:
+      - API_URL=http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - default
+
+  backend:
+    image: matiasfontecillaucn/backend_proyecto_is:latest
+    restart: always
+    container_name: backend_proyecto_is_container
+    ports:
+      - 5000:5000
+    environment:
+      db_username: ${db_username}
+      db_password: ${db_password}
+      db_host: mysql # use the service name as the hostname
+      db_port: ${db_port}
+      db_name: ${db_name}
+    #command: ["flask", "db", "upgrade"]
+    depends_on:
+      - mysql
+    networks:
+      - default
+
+  mysql:
+    image: mysql:latest
+    restart: always
+    container_name: ${db_name}
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: ${db_name}
+      MYSQL_PASSWORD: ${db_password}
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d/
+      #- mysql_data:/var/lib/mysql
+    networks:
+      - default
+volumes:
+  mysql_data:
